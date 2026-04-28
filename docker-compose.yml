@@ -1,7 +1,8 @@
 services:
   db:
     image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
+    # MySQL 8.0 için güncel kimlik doğrulama ayarı
+    command: --authentication-policy=mysql_native_password
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -13,6 +14,11 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d
+    # Veritabanının sadece çalışmasını değil, "hazır" olmasını kontrol eder
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uappuser", "-papppassword" ]
+      timeout: 5s
+      retries: 10
 
   backend:
     build:
@@ -31,7 +37,8 @@ services:
       - DB_NAME=yalinkamban
       - JWT_SECRET=supersecret123
     depends_on:
-      - db
+      db:
+        condition: service_healthy # db tam hazır olmadan backend başlamaz
     command: npm run dev
 
   frontend:
