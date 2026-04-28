@@ -1,7 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import Home from './pages/Home';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import AppLayout from './layouts/AppLayout';
 import './App.css';
 
 function App() {
@@ -9,9 +12,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<div className="container mt-5"><h1>Hoşgeldiniz</h1></div>} />
+          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
