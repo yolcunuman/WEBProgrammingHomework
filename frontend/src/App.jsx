@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import AppLayout from './layouts/AppLayout';
 import './App.css';
 
 function App() {
@@ -13,7 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
