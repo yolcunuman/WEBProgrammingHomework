@@ -10,10 +10,15 @@ const Project = {
     return result;
   },
 
-  // Kullanıcının oluşturduğu tüm projeleri getir
+  // Kullanıcının üyesi olduğu tüm projeleri getir (kendi oluşturduğu + eklendiği)
   findAllByUser: async (userId) => {
     const [rows] = await pool.execute(
-      'SELECT * FROM Projects WHERE created_by = ? ORDER BY created_at DESC',
+      `SELECT p.*, pm.role,
+              (SELECT COUNT(*) FROM Tasks t WHERE t.project_id = p.id) AS task_count
+       FROM Projects p
+       INNER JOIN ProjectMembers pm ON p.id = pm.project_id
+       WHERE pm.user_id = ?
+       ORDER BY p.created_at DESC`,
       [userId]
     );
     return rows;

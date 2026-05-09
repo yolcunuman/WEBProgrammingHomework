@@ -281,9 +281,16 @@ const Dashboard = () => {
                         >
                           {project.name}
                         </h6>
-                        <small className="text-muted" style={{ fontSize: '12px' }}>
-                          Yönetici
-                        </small>
+                        <div className="d-flex align-items-center gap-2 mt-1">
+                          <small className="text-muted" style={{ fontSize: '11px' }}>
+                            {project.role === 'owner' ? '👑 Sahip' : '👤 Üye'}
+                          </small>
+                          {project.task_count > 0 && (
+                            <span className="badge bg-light text-muted border" style={{ fontSize: '10px' }}>
+                              {project.task_count} görev
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -337,7 +344,16 @@ const Dashboard = () => {
                           )}
                         </div>
                       </div>
-                      <span className="badge bg-light text-muted border">Yönetici</span>
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="badge bg-light text-muted border">
+                          {project.role === 'owner' ? '👑 Sahip' : '👤 Üye'}
+                        </span>
+                        {project.task_count > 0 && (
+                          <span className="badge bg-light text-muted border">
+                            {project.task_count} görev
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                   <button
