@@ -29,3 +29,14 @@ CREATE TABLE IF NOT EXISTS Tasks (
   FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE,
   FOREIGN KEY (assigned_to) REFERENCES Users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS ProjectMembers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  user_id INT NOT NULL,
+  role ENUM('owner', 'member') DEFAULT 'member',
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_membership (project_id, user_id),
+  FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+);
