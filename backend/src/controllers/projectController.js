@@ -52,6 +52,31 @@ const getProjectById = async (req, res) => {
   }
 };
 
+// PATCH /api/projects/:id — Projeyi güncelle (sadece sahibi)
+const updateProject = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const userId = req.user.id;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Proje adı boş bırakılamaz.' });
+    }
+
+    const result = await Project.update(req.params.id, name.trim(), description || '', userId);
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json({
+        message: 'Bu projeyi düzenleme yetkiniz yok veya proje bulunamadı.',
+      });
+    }
+
+    res.json({ message: 'Proje başarıyla güncellendi.' });
+  } catch (error) {
+    console.error('updateProject hatası:', error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};
+
 // DELETE /api/projects/:id — Projeyi sil (sadece sahibi)
 const deleteProject = async (req, res) => {
   try {
@@ -104,7 +129,7 @@ const addProjectMember = async (req, res) => {
     const result = await ProjectMember.addMemberByEmail(projectId, email.trim());
 
     if (!result) {
-      return res.status(404).json({ message: 'Bu e-posta adresine sahip kullanıcı bulunamadı.' });
+      return res.status(404).json({ message: 'Bu e-posta ile kayıtlı kullanıcı bulunamadı. Kullanıcının önce sisteme kayıt olması gerekiyor.' });
     }
     if (result.alreadyMember) {
       return res.status(400).json({ message: 'Bu kullanıcı zaten projenin üyesi.' });
@@ -146,6 +171,7 @@ module.exports = {
   createProject,
   getProjects,
   getProjectById,
+  updateProject,
   deleteProject,
   getProjectMembers,
   addProjectMember,

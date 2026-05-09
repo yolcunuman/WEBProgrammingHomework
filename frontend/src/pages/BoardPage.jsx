@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import KanbanBoard from '../components/KanbanBoard';
 import TaskModal from '../components/TaskModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const BoardPage = () => {
   const { projectId } = useParams();
@@ -24,6 +25,15 @@ const BoardPage = () => {
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [memberEmail, setMemberEmail] = useState('');
   const [memberError, setMemberError] = useState(null);
+
+  // Silme onay dialogu
+  const [confirmDeleteTask, setConfirmDeleteTask] = useState(null);
+
+  // Proje düzenleme state
+  const [showProjectEdit, setShowProjectEdit] = useState(false);
+  const [editProjectName, setEditProjectName] = useState('');
+  const [editProjectDesc, setEditProjectDesc] = useState('');
+  const [editProjectError, setEditProjectError] = useState(null);
 
   // Toast state
   const [toast, setToast] = useState(null);
@@ -139,10 +149,11 @@ const BoardPage = () => {
     }
   };
 
-  // Görev sil
+  // Görev sil (onay sonrası)
   const handleDeleteTask = async (taskId) => {
     const oldTasks = [...tasks];
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setConfirmDeleteTask(null);
 
     try {
       await api.delete(`/tasks/${taskId}`);
@@ -153,9 +164,48 @@ const BoardPage = () => {
     }
   };
 
+  // Görev silme isteği (önce onay dialogu aç)
+  const requestDeleteTask = (taskId) => {
+    setConfirmDeleteTask(taskId);
+  };
+
   const handleEditTask = (task) => {
     setEditingTask(task);
     setShowModal(true);
+  };
+
+  // --- Proje Düzenleme ---
+  const handleStartProjectEdit = () => {
+    setEditProjectName(project?.name || '');
+    setEditProjectDesc(project?.description || '');
+    setEditProjectError(null);
+    setShowProjectEdit(true);
+  };
+
+  const handleSaveProjectEdit = async (e) => {
+    e.preventDefault();
+    setEditProjectError(null);
+
+    if (!editProjectName.trim()) {
+      setEditProjectError('Proje adı boş bırakılamaz.');
+      return;
+    }
+
+    try {
+      await api.patch(`/projects/${projectId}`, {
+        name: editProjectName.trim(),
+        description: editProjectDesc.trim(),
+      });
+      setProject((prev) => ({
+        ...prev,
+        name: editProjectName.trim(),
+        description: editProjectDesc.trim(),
+      }));
+      setShowProjectEdit(false);
+      showToast('Proje güncellendi!');
+    } catch (err) {
+      setEditProjectError(err.response?.data?.message || 'Proje güncellenemedi.');
+    }
   };
 
   // --- Üye Ekleme ---
@@ -196,9 +246,31 @@ const BoardPage = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center h-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Yükleniyor...</span>
+      <div className="container-fluid px-0 h-100 d-flex flex-column gap-4">
+        <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+          <div className="d-flex align-items-center gap-3">
+            <div className="skeleton rounded-circle" style={{ width: '36px', height: '36px' }}></div>
+            <div className="d-flex flex-column gap-2">
+              <div className="skeleton" style={{ width: '200px', height: '24px' }}></div>
+              <div className="skeleton" style={{ width: '150px', height: '14px' }}></div>
+            </div>
+          </div>
+          <div className="d-flex gap-2">
+            <div className="skeleton rounded-circle" style={{ width: '32px', height: '32px' }}></div>
+            <div className="skeleton rounded-circle" style={{ width: '32px', height: '32px' }}></div>
+            <div className="skeleton" style={{ width: '100px', height: '32px', borderRadius: '8px' }}></div>
+          </div>
+        </div>
+        <div className="row g-4 flex-grow-1">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="col-md-4">
+              <div className="card h-100 border-0 bg-light p-3">
+                <div className="skeleton mb-3" style={{ width: '40%', height: '24px' }}></div>
+                <div className="skeleton mb-2" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
+                <div className="skeleton" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -234,6 +306,72 @@ const BoardPage = () => {
         </div>
       )}
 
+      {/* Görev Silme Onay Dialogu */}
+      <ConfirmDialog
+        show={!!confirmDeleteTask}
+        title="Görevi Sil"
+        message="Bu görevi kalıcı olarak silmek istediğinize emin misiniz?"
+        confirmText="Evet, Sil"
+        onConfirm={() => handleDeleteTask(confirmDeleteTask)}
+        onCancel={() => setConfirmDeleteTask(null)}
+      />
+
+      {/* Proje Düzenleme Modalı */}
+      {showProjectEdit && (
+        <>
+          <div
+            className="modal-backdrop show"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setShowProjectEdit(false)}
+          />
+          <div className="modal d-block" tabIndex="-1" style={{ zIndex: 1055 }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+                <div style={{ height: '4px', background: 'linear-gradient(90deg, var(--custom-primary), var(--custom-secondary))' }} />
+                <div className="modal-header border-0 pb-0 px-4 pt-4">
+                  <h5 className="modal-title fw-bold" style={{ color: 'var(--custom-text)' }}>✏️ Projeyi Düzenle</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowProjectEdit(false)} />
+                </div>
+                <form onSubmit={handleSaveProjectEdit}>
+                  <div className="modal-body px-4 py-3">
+                    {editProjectError && (
+                      <div className="alert alert-danger py-2" style={{ fontSize: '13px', borderRadius: '8px' }}>
+                        ⚠️ {editProjectError}
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <label className="form-label">Proje Adı</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editProjectName}
+                        onChange={(e) => setEditProjectName(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Açıklama <small className="text-muted">(opsiyonel)</small>
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows="3"
+                        value={editProjectDesc}
+                        onChange={(e) => setEditProjectDesc(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" className="btn btn-light fw-medium" onClick={() => setShowProjectEdit(false)}>İptal</button>
+                    <button type="submit" className="btn btn-primary fw-medium">Kaydet</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Sayfa Başlığı */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-3 border-bottom">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
@@ -246,9 +384,21 @@ const BoardPage = () => {
             ←
           </button>
           <div>
-            <h3 className="fw-bold mb-0" style={{ color: 'var(--custom-text)', letterSpacing: '-0.5px' }}>
-              {project?.name}
-            </h3>
+            <div className="d-flex align-items-center gap-2">
+              <h3 className="fw-bold mb-0" style={{ color: 'var(--custom-text)', letterSpacing: '-0.5px' }}>
+                {project?.name}
+              </h3>
+              {isOwner && (
+                <button
+                  className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+                  style={{ width: 28, height: 28, fontSize: '12px' }}
+                  onClick={handleStartProjectEdit}
+                  title="Projeyi Düzenle"
+                >
+                  ✏️
+                </button>
+              )}
+            </div>
             {project?.description && (
               <small className="text-muted">{project.description}</small>
             )}
@@ -369,7 +519,7 @@ const BoardPage = () => {
         tasks={tasks}
         onStatusChange={handleStatusChange}
         onEditTask={handleEditTask}
-        onDeleteTask={handleDeleteTask}
+        onDeleteTask={requestDeleteTask}
       />
 
       {/* Task Modal */}

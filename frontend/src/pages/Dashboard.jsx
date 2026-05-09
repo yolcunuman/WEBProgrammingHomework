@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
@@ -16,6 +17,15 @@ const Dashboard = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [createError, setCreateError] = useState(null);
+
+  // Proje düzenleme state
+  const [editingProject, setEditingProject] = useState(null);
+  const [editProjectName, setEditProjectName] = useState('');
+  const [editProjectDesc, setEditProjectDesc] = useState('');
+  const [editError, setEditError] = useState(null);
+
+  // Silme onay dialog state
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   // Toast state
   const [toast, setToast] = useState(null);
@@ -53,6 +63,11 @@ const Dashboard = () => {
       return;
     }
 
+    if (newProjectName.trim().length < 2) {
+      setCreateError('Proje adı en az 2 karakter olmalıdır.');
+      return;
+    }
+
     try {
       const res = await api.post('/projects', {
         name: newProjectName.trim(),
@@ -65,6 +80,8 @@ const Dashboard = () => {
         name: newProjectName.trim(),
         description: newProjectDesc.trim(),
         created_at: new Date().toISOString(),
+        role: 'owner',
+        task_count: 0,
       };
       setProjects((prev) => [newProject, ...prev]);
       setNewProjectName('');
@@ -76,17 +93,58 @@ const Dashboard = () => {
     }
   };
 
-  // Proje sil
+  // Proje düzenleme başlat
+  const handleStartEdit = (project, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingProject(project);
+    setEditProjectName(project.name);
+    setEditProjectDesc(project.description || '');
+    setEditError(null);
+  };
+
+  // Proje düzenleme kaydet
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setEditError(null);
+
+    if (!editProjectName.trim()) {
+      setEditError('Proje adı boş bırakılamaz.');
+      return;
+    }
+
+    try {
+      await api.patch(`/projects/${editingProject.id}`, {
+        name: editProjectName.trim(),
+        description: editProjectDesc.trim(),
+      });
+
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === editingProject.id
+            ? { ...p, name: editProjectName.trim(), description: editProjectDesc.trim() }
+            : p
+        )
+      );
+      setEditingProject(null);
+      showToast('Proje güncellendi!');
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Proje güncellenemedi.');
+    }
+  };
+
+  // Proje silme (onay sonrası)
   const handleDeleteProject = async (projectId) => {
     const oldProjects = [...projects];
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    setConfirmDelete(null);
 
     try {
       await api.delete(`/projects/${projectId}`);
       showToast('Proje silindi.');
     } catch (err) {
       setProjects(oldProjects);
-      showToast('Proje silinemedi.', 'danger');
+      showToast(err.response?.data?.message || 'Proje silinemedi.', 'danger');
     }
   };
 
@@ -95,9 +153,21 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center h-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Yükleniyor...</span>
+      <div className="container-fluid px-0 h-100 d-flex flex-column gap-4">
+        <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <div className="skeleton" style={{ width: '150px', height: '32px' }}></div>
+          <div className="skeleton" style={{ width: '200px', height: '32px', borderRadius: '50px' }}></div>
+        </div>
+        <div className="d-flex flex-wrap gap-4 mt-4">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="card border-0 shadow-sm overflow-hidden" style={{ width: '160px', height: '240px', borderRadius: '12px' }}>
+              <div className="skeleton" style={{ height: '70%', borderRadius: '0' }}></div>
+              <div className="p-3 d-flex flex-column gap-2 bg-white flex-grow-1">
+                <div className="skeleton" style={{ width: '100%', height: '16px' }}></div>
+                <div className="skeleton" style={{ width: '60%', height: '12px' }}></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -125,6 +195,76 @@ const Dashboard = () => {
             {toast.type === 'success' ? '✅' : '⚠️'} {toast.message}
           </div>
         </div>
+      )}
+
+      {/* Silme Onay Dialogu */}
+      <ConfirmDialog
+        show={!!confirmDelete}
+        title="Projeyi Sil"
+        message="Bu projeyi ve tüm görevlerini kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+        confirmText="Evet, Sil"
+        onConfirm={() => handleDeleteProject(confirmDelete)}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Proje Düzenleme Modalı */}
+      {editingProject && (
+        <>
+          <div
+            className="modal-backdrop show"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setEditingProject(null)}
+          />
+          <div className="modal d-block" tabIndex="-1" style={{ zIndex: 1055 }}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+                <div style={{ height: '4px', background: 'linear-gradient(90deg, var(--custom-primary), var(--custom-secondary))' }} />
+                <div className="modal-header border-0 pb-0 px-4 pt-4">
+                  <h5 className="modal-title fw-bold" style={{ color: 'var(--custom-text)' }}>✏️ Projeyi Düzenle</h5>
+                  <button type="button" className="btn-close" onClick={() => setEditingProject(null)} />
+                </div>
+                <form onSubmit={handleSaveEdit}>
+                  <div className="modal-body px-4 py-3">
+                    {editError && (
+                      <div className="alert alert-danger py-2" style={{ fontSize: '13px', borderRadius: '8px' }}>
+                        ⚠️ {editError}
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <label className="form-label">Proje Adı</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editProjectName}
+                        onChange={(e) => setEditProjectName(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Açıklama <small className="text-muted">(opsiyonel)</small>
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows="3"
+                        value={editProjectDesc}
+                        onChange={(e) => setEditProjectDesc(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" className="btn btn-light fw-medium" onClick={() => setEditingProject(null)}>
+                      İptal
+                    </button>
+                    <button type="submit" className="btn btn-primary fw-medium">
+                      Kaydet
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* 1. Projeler Bölümü */}
@@ -294,29 +434,47 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </Link>
-                  {/* Sil butonu */}
-                  <button
-                    className="btn btn-sm position-absolute shadow-sm"
-                    style={{
-                      top: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(255,255,255,0.9)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      width: 28,
-                      height: 28,
-                      padding: 0,
-                      lineHeight: '28px',
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteProject(project.id);
-                    }}
-                    title="Projeyi Sil"
-                  >
-                    🗑️
-                  </button>
+                  {/* Aksiyon butonları — sadece sahip görebilir */}
+                  {project.role === 'owner' && (
+                    <div className="position-absolute d-flex gap-1" style={{ top: 8, right: 8 }}>
+                      <button
+                        className="btn btn-sm shadow-sm"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.9)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          width: 28,
+                          height: 28,
+                          padding: 0,
+                          lineHeight: '28px',
+                        }}
+                        onClick={(e) => handleStartEdit(project, e)}
+                        title="Projeyi Düzenle"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn btn-sm shadow-sm"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.9)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          width: 28,
+                          height: 28,
+                          padding: 0,
+                          lineHeight: '28px',
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setConfirmDelete(project.id);
+                        }}
+                        title="Projeyi Sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -356,22 +514,54 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </Link>
-                  <button
-                    className="btn btn-light btn-sm"
-                    onClick={() => handleDeleteProject(project.id)}
-                    title="Sil"
-                  >
-                    🗑️
-                  </button>
+                  {/* Liste görünümünde aksiyon butonları — sadece sahip */}
+                  {project.role === 'owner' && (
+                    <div className="d-flex gap-1">
+                      <button
+                        className="btn btn-light btn-sm"
+                        onClick={(e) => handleStartEdit(project, e)}
+                        title="Düzenle"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn btn-light btn-sm"
+                        onClick={() => setConfirmDelete(project.id)}
+                        title="Sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
+
+          {/* Empty State */}
           {filteredProjects.length === 0 && !loading && (
-            <div className="text-center text-muted py-5">
-              {searchQuery
-                ? 'Arama kriterlerine uygun proje bulunamadı.'
-                : 'Henüz projeniz yok. İlk projenizi oluşturun!'}
+            <div className="text-center py-5">
+              <div style={{ fontSize: '64px', marginBottom: '16px', opacity: 0.3 }}>
+                {searchQuery ? '🔍' : '📋'}
+              </div>
+              <h5 className="fw-semibold mb-2" style={{ color: 'var(--custom-text)' }}>
+                {searchQuery
+                  ? 'Sonuç Bulunamadı'
+                  : 'Henüz Projeniz Yok'}
+              </h5>
+              <p className="text-muted mb-4" style={{ fontSize: '14px', maxWidth: '400px', margin: '0 auto' }}>
+                {searchQuery
+                  ? `"${searchQuery}" ile eşleşen proje bulunamadı. Farklı bir arama deneyin.`
+                  : 'İlk projenizi oluşturarak görev takibine hemen başlayın. Her şey bir adımla başlar!'}
+              </p>
+              {!searchQuery && (
+                <button
+                  className="btn btn-primary fw-medium shadow-sm"
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  ➕ İlk Projeni Oluştur
+                </button>
+              )}
             </div>
           )}
         </div>

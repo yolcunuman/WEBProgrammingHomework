@@ -5,6 +5,7 @@ const {
   createProject,
   getProjects,
   getProjectById,
+  updateProject,
   deleteProject,
   getProjectMembers,
   addProjectMember,
@@ -17,6 +18,7 @@ router.use(authMiddleware);
 router.post('/', createProject);                        // Proje oluştur
 router.get('/', getProjects);                           // Projeleri listele
 router.get('/:id', getProjectById);                     // Tek proje getir
+router.patch('/:id', updateProject);                    // Proje güncelle
 router.delete('/:id', deleteProject);                   // Proje sil
 
 // Üye yönetimi

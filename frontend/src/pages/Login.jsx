@@ -18,6 +18,23 @@ const Login = () => {
     setError(null);
     setSuccess(null);
 
+    // Frontend validations
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Lütfen geçerli bir e-posta adresi giriniz.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Şifreniz en az 6 karakter olmalıdır.');
+      return;
+    }
+
+    if (!isLogin && username.trim().length < 3) {
+      setError('Kullanıcı adı en az 3 karakter olmalıdır.');
+      return;
+    }
+
     try {
       if (isLogin) {
         await login(email, password);

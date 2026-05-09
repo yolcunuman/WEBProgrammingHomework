@@ -33,6 +33,15 @@ const Project = {
     return rows[0];
   },
 
+  // Projeyi güncelle (sadece sahibi güncelleyebilir)
+  update: async (id, name, description, userId) => {
+    const [result] = await pool.execute(
+      'UPDATE Projects SET name = ?, description = ? WHERE id = ? AND created_by = ?',
+      [name, description, id, userId]
+    );
+    return result;
+  },
+
   // Projeyi sil (sadece sahibi silebilir)
   delete: async (id, userId) => {
     const [result] = await pool.execute(
