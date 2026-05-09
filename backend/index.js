@@ -4,6 +4,8 @@ const pool = require('./src/config/db');
 
 // Rotaların içe aktarılması
 const authRoutes = require('./src/routes/authRoutes');
+const projectRoutes = require('./src/routes/projectRoutes');
+const taskRoutes = require('./src/routes/standaloneTaskRoutes');
 
 const app = express();
 
@@ -13,6 +15,12 @@ app.use(express.json());
 
 // API Rotaları
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+
+// Proje kapsamlı görev rotaları: /api/projects/:projectId/tasks
+const projectTaskRoutes = require('./src/routes/taskRoutes');
+app.use('/api/projects/:projectId/tasks', projectTaskRoutes);
 
 // Test veritabanı bağlantısı
 pool.getConnection()

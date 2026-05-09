@@ -107,3 +107,132 @@ a:hover {
 .text-accent {
   color: var(--custom-accent);
 }
+
+/* ============================================
+   KANBAN & UX Polish Styles
+   ============================================ */
+
+/* Drag & Drop Visual Feedback */
+[draggable="true"] {
+  cursor: grab;
+}
+
+[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+  transform: rotate(2deg) scale(1.02);
+  transition: transform 0.1s ease;
+}
+
+/* Kanban column drop highlight */
+.kanban-drop-active {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+  border-color: var(--custom-primary) !important;
+  border-style: dashed !important;
+}
+
+/* Toast Enter Animation */
+.alert.fade.show {
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Modal Enter Animation */
+.modal.d-block .modal-dialog {
+  animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sidebar link hover effect */
+aside .rounded-3:hover {
+  background-color: #f1f5f9 !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Select (dropdown) styling to match form controls */
+.form-select {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+  transition: all 0.2s ease !important;
+  background-color: #ffffff !important;
+  color: var(--custom-text) !important;
+}
+
+.form-select:focus {
+  border-color: var(--custom-primary) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Badge hover effect for member tags */
+.badge {
+  transition: all 0.15s ease;
+}
+
+/* Responsive: sidebar collapse on small screens */
+@media (max-width: 768px) {
+  aside {
+    width: 64px !important;
+    overflow: hidden;
+  }
+  aside span:not(:first-child),
+  aside p,
+  aside .fw-bold.fs-5 {
+    display: none;
+  }
+}
+
+/* Skeleton Loading Animation */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeletonLoading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
